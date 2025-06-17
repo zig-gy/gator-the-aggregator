@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/zig-gy/gator-the-aggregator/internal/config"
 )
@@ -9,21 +10,18 @@ import (
 func main() {
 	cfg, err := config.Read()
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 		return
 	}
 	
-	if err := cfg.SetUser("benjamin"); err != nil {
-		fmt.Print(err)
-		return
-	}
+	_ = state{&cfg}
+	cmds := commands{make(map[string]func(*state, command) error)}
 
-	cfg, err = config.Read()
-	if err != nil {
-		fmt.Print(err)
-		return
-	}
+	cmds.register("login", handlerLogin)
 
-	fmt.Println(cfg.CurrentUsername)
-	fmt.Println(cfg.DbUrl)	
-}
+	arguments := os.Args
+	if len(arguments) < 2 {
+		fmt.Println("error: gator needs a command to run")
+	}
+	
+}	
