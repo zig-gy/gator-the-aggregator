@@ -4,10 +4,12 @@ import (
 	"fmt"
 
 	"github.com/zig-gy/gator-the-aggregator/internal/config"
+	"github.com/zig-gy/gator-the-aggregator/internal/database"
 )
 
 type state struct {
 	cfg *config.Config
+	db *database.Queries
 }
 
 type command struct {
