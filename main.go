@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/lib/pq"
 	"github.com/zig-gy/gator-the-aggregator/internal/config"
 )
 
@@ -11,10 +12,10 @@ func main() {
 	cfg, err := config.Read()
 	if err != nil {
 		fmt.Println(err)
-		return
+		os.Exit(1)
 	}
 	
-	_ = state{&cfg}
+	s := state{&cfg}
 	cmds := commands{make(map[string]func(*state, command) error)}
 
 	cmds.register("login", handlerLogin)
@@ -22,6 +23,18 @@ func main() {
 	arguments := os.Args
 	if len(arguments) < 2 {
 		fmt.Println("error: gator needs a command to run")
+		os.Exit(1)
+	}
+
+	cmd := command{
+		name: arguments[1],
+		arguments: arguments[2:],
+	}
+
+	if err := cmds.run(&s, cmd); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 	
+	os.Exit(0)
 }	
