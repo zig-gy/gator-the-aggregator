@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"html"
 	"time"
 
 	"github.com/google/uuid"
@@ -75,5 +76,23 @@ func handlerUsers(s *state, cmd command) error {
 		}
 		fmt.Println("")
 	}
+	return nil
+}
+
+func handlerAgg(s *state, cmd command) error {
+	feed, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if err != nil {
+		return fmt.Errorf("error buscando feed: %v", err)
+	}
+
+	feed.Channel.Title = html.UnescapeString(feed.Channel.Title)
+	feed.Channel.Description = html.UnescapeString(feed.Channel.Description)
+
+	for _, item := range feed.Channel.Item {
+		item.Description = html.UnescapeString(item.Description)
+		item.Title = html.UnescapeString(item.Title)
+	}
+
+	fmt.Println(*feed)
 	return nil
 }
