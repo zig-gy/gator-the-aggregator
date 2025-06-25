@@ -126,4 +126,14 @@ func handlerAddFeed(s *state, cmd command) error {
 	return nil
 }
 
+func handlerFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting feeds from the database: %v", err)
+	}
 
+	for _, feed := range feeds {
+		fmt.Printf(" - %s@%s (%s)\n", feed.FeedName, feed.Url, feed.UserName)
+	}
+	return nil
+}
