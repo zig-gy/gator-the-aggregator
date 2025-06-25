@@ -96,3 +96,34 @@ func handlerAgg(s *state, cmd command) error {
 	fmt.Println(*feed)
 	return nil
 }
+
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.arguments) < 2 {
+		return fmt.Errorf("not enough arguments passed, needs name and url")
+	}
+
+	name := cmd.arguments[0]
+	url := cmd.arguments[1]
+
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUsername)
+	if err != nil {
+		return fmt.Errorf("error getting user from database: %v", err)
+	}
+
+	feed , err := s.db.AddFeed(context.Background(), database.AddFeedParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name: name,
+		Url: url,
+		UserID: user.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error adding feed to database: %v", err)
+	}
+
+	fmt.Println(feed)
+	return nil
+}
+
+
