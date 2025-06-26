@@ -9,17 +9,11 @@ import (
 	"github.com/zig-gy/gator-the-aggregator/internal/database"
 )
 
-func createFollow(s *state, url string) (feedFollow database.CreateFeedFollowRow, err error) {
-	feedId, err := s.db.GetFeedByUrl(context.Background(), url)
+func createFollow(s *state, url string, user database.User) (feedFollow database.CreateFeedFollowRow, err error) {
+	feed, err := s.db.GetFeedByUrl(context.Background(), url)
 	if err != nil {
 		err =  fmt.Errorf("error finding feed by url: %v", err)
 		return
-	}
-
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUsername)
-	if err != nil {
-		err = fmt.Errorf("error finding user by name: %v", err)
-		return 
 	}
 
 	feedFollow, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
@@ -27,10 +21,24 @@ func createFollow(s *state, url string) (feedFollow database.CreateFeedFollowRow
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		UserID: user.ID,
-		FeedID: feedId,
+		FeedID: feed.ID,
 	})
 	if err != nil {
 		err = fmt.Errorf("error creating follow record: %v", err)
 	}
 	return
+}
+
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+	return func(s *state, cmd command) error {
+		user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUsername)
+		if err != nil {
+			return fmt.Errorf("error finding user by name: %v", err)
+		}
+
+		if err := handler(s, cmd, user); err != nil {
+			return fmt.Errorf("error executing command: %v", err)
+		}
+		return nil
+	}
 }

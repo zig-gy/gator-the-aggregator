@@ -97,19 +97,13 @@ func handlerAgg(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.arguments) < 2 {
 		return fmt.Errorf("not enough arguments passed, needs name and url")
 	}
 
 	name := cmd.arguments[0]
 	url := cmd.arguments[1]
-
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUsername)
-	if err != nil {
-		return fmt.Errorf("error getting user from database: %v", err)
-	}
-
 	feed , err := s.db.AddFeed(context.Background(), database.AddFeedParams{
 		ID: uuid.New(),
 		CreatedAt: time.Now(),
@@ -124,7 +118,7 @@ func handlerAddFeed(s *state, cmd command) error {
 
 	fmt.Println(feed)
 
-	feedFollow, err := createFollow(s, url)
+	feedFollow, err := createFollow(s, url, user)
 	if err != nil {
 		return fmt.Errorf("error creating follow record: %v", err)
 	}
@@ -145,13 +139,13 @@ func handlerFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.arguments) < 1 {
 		return fmt.Errorf("not enough arguments passed, need an url")
 	}
 
 	url := cmd.arguments[0]
-	feedFollow, err := createFollow(s, url)
+	feedFollow, err := createFollow(s, url, user)
 	if err != nil {
 		return fmt.Errorf("error creating follow: %v", err)
 	}
@@ -160,20 +154,38 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUsername)
-	if err != nil {
-		return fmt.Errorf("error getting user by name: %v", err)
-	}
-
+func handlerFollowing(s *state, cmd command, user database.User) error {
 	feedFollows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return fmt.Errorf("error getting feed follows for user: %v", err)
 	}
 
-	fmt.Printf("Feeds followed by %s\n", feedFollows[0].UserName)
+	fmt.Printf("Feeds followed by %s\n", user.Name)
 	for _, row := range feedFollows {
 		fmt.Printf(" - %s\n", row.FeedName)
 	}
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.arguments) < 1 {
+		return fmt.Errorf("not enough arguments passed, needs an url")
+	}
+
+	url := cmd.arguments[0]
+
+	feed, err := s.db.GetFeedByUrl(context.Background(), url)
+	if err != nil {
+		return fmt.Errorf("error getting feed: %v", err)
+	}
+
+	if err := s.db.DeleteFeedFollow(context.Background(), database.DeleteFeedFollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	}); err != nil {
+		return fmt.Errorf("error deleting feed follow: %v", err)
+	}
+
+	fmt.Printf("Feed %s unfollowed by user %s\n", feed.Name, user.Name)
 	return nil
 }

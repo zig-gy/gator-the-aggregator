@@ -36,10 +36,11 @@ func main() {
 	cmds.register("reset", handlerReset)
 	cmds.register("users", handlerUsers)
 	cmds.register("agg", handlerAgg)
-	cmds.register("addfeed", handlerAddFeed)
+	cmds.register("addfeed", middlewareLoggedIn(handlerAddFeed))
 	cmds.register("feeds", handlerFeeds)
-	cmds.register("follow", handlerFollow)
-	cmds.register("following", handlerFollowing)
+	cmds.register("follow", middlewareLoggedIn(handlerFollow))
+	cmds.register("following", middlewareLoggedIn(handlerFollowing))
+	cmds.register("unfollow", middlewareLoggedIn(handlerUnfollow))
 
 	arguments := os.Args
 	if len(arguments) < 2 {
@@ -55,8 +56,8 @@ func main() {
 	for name := range cmds.cmds {
 		if cmd.name == name {
 			if err := cmds.run(&s, cmd); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+				fmt.Println(err)
+				os.Exit(1)
 			}
 			os.Exit(0)
 		}

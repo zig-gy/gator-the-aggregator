@@ -10,6 +10,6 @@ JOIN users u ON f.user_id = u.id;
 
 -- name: GetFeedByUrl :one
 SELECT
-    f.id
+    *
 FROM feeds f
 WHERE f.url = $1;
