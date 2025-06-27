@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -93,8 +94,6 @@ func handlerAgg(s *state, cmd command) error {
 	for ; ; <-ticker.C {
 		scrapeFeeds(s)
 	}
-
-	return nil
 }
 
 func handlerAddFeed(s *state, cmd command, user database.User) error {
@@ -187,5 +186,34 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 	}
 
 	fmt.Printf("Feed %s unfollowed by user %s\n", feed.Name, user.Name)
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	var limit int
+	if len(cmd.arguments) < 1 {
+		limit = 2
+	} else {
+		var err error
+		limit, err = strconv.Atoi(cmd.arguments[0])
+		if err != nil {
+			return fmt.Errorf("can't parse limit passed, pass an integer: %v", err)
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit: int32(limit),
+	})
+	if err != nil {
+		return fmt.Errorf("error getting posts for user: %v", err)
+	}
+
+	for i, post := range posts {
+		fmt.Printf("Post %d: %s\n", i+1, post.Title)
+		fmt.Println("-------------------Link-------------------")
+		fmt.Println(post.Url)
+		fmt.Printf("------------%v------------\n\n", post.PublishedAt)
+	}
 	return nil
 }

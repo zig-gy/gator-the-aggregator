@@ -61,9 +61,35 @@ func scrapeFeeds(s *state) error {
 		return fmt.Errorf("error fetching feed: %v", err)
 	}
 
-	fmt.Printf("Feed %s:\n", feed.Channel.Title)
 	for _, item := range feed.Channel.Item {
-		fmt.Printf(" - %s\n",item.Title)
+		pubDate, err := parseRSSPubdate(item.PubDate)
+		if err != nil {
+			return fmt.Errorf("error parsing pubdate, post %s, feed %s: %v", item.Title, feed.Channel.Title, err)
+		}
+
+		post, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID: uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Title: item.Title,
+			Url: item.Link,
+			Description: item.Description,
+			PublishedAt: pubDate,
+			FeedID: feedRecord.ID,
+		})
+		if err != nil {
+			return fmt.Errorf("error creating post record, post %s, feed %s: %v", item.Title, feed.Channel.Title, err)
+		}
+		fmt.Printf("Post created\n%v\n", post)
 	}
+	
 	return nil
+}
+
+func parseRSSPubdate(timestamp string) (time.Time, error) {
+	parsedTime, err := time.Parse(time.RFC1123Z, timestamp)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("couldn't find a matching date format: %v", err)
+	}
+	return parsedTime, nil
 }
