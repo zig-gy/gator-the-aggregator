@@ -42,3 +42,28 @@ func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) 
 		return nil
 	}
 }
+
+func scrapeFeeds(s *state) error {
+	feedRecord, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting next feed to fetch: %v", err)
+	}
+
+	if err := s.db.MarkFeedFetched(context.Background(), database.MarkFeedFetchedParams{
+		UpdatedAt: time.Now(),
+		ID: feedRecord.ID,
+	}); err != nil {
+		return fmt.Errorf("error marking feed %s as fetched: %v", feedRecord.Name, err)
+	}
+
+	feed, err := fetchFeed(context.Background(), feedRecord.Url)
+	if err != nil {
+		return fmt.Errorf("error fetching feed: %v", err)
+	}
+
+	fmt.Printf("Feed %s:\n", feed.Channel.Title)
+	for _, item := range feed.Channel.Item {
+		fmt.Printf(" - %s\n",item.Title)
+	}
+	return nil
+}

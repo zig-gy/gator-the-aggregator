@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"html"
 	"time"
 
 	"github.com/google/uuid"
@@ -80,20 +79,21 @@ func handlerUsers(s *state, cmd command) error {
 }
 
 func handlerAgg(s *state, cmd command) error {
-	feed, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	if len(cmd.arguments) < 1 {
+		return fmt.Errorf("not enough arguments passed, needs to specify a time between requests")
+	}
+
+	command := cmd.arguments[0]
+	timeBetweenReqs, err := time.ParseDuration(command)
 	if err != nil {
-		return fmt.Errorf("error buscando feed: %v", err)
+		return fmt.Errorf("error parsing durationg: %v", err)
 	}
 
-	feed.Channel.Title = html.UnescapeString(feed.Channel.Title)
-	feed.Channel.Description = html.UnescapeString(feed.Channel.Description)
-
-	for _, item := range feed.Channel.Item {
-		item.Description = html.UnescapeString(item.Description)
-		item.Title = html.UnescapeString(item.Title)
+	ticker := time.NewTicker(timeBetweenReqs)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
 	}
 
-	fmt.Println(*feed)
 	return nil
 }
 
